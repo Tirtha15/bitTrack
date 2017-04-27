@@ -16,6 +16,7 @@
     "express": "~4.14.1",
     "monk": "^4.0.0",
     "morgan": "~1.7.0",
+    "nodemailer": "^4.0.1",
     "request": "^2.81.0",
     "serve-favicon": "~2.3.2",
     "underscore": "^1.8.3"

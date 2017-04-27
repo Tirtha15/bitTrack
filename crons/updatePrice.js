@@ -3,6 +3,7 @@ var async = require('async');
 var _ = require('underscore');
 var request = require('request');
 var cheerio = require('cheerio');
+var emailService = require('./../services/emailService.js');
 var nodeEnv = process.env.NODE_ENV;
 var db = require('monk')('ec2-54-89-200-149.compute-1.amazonaws.com:27017/bitTrack');
 var priceHistoryCol = db.get("priceHistory");
@@ -83,7 +84,8 @@ var job = new cron.CronJob('1 * * * * * ', function () {
                 //unocoin
                 if(unoCoin.status && unoCoin.status === 'error'){
                     //send email
-                    console.log("error in unocoin", unocoin);
+                    console.log("error in unocoin", unoCoin);
+                    emailService.sendEmail('Error in unocoin', JSON.stringify(unoCoin));
                 } else {
                     toUpdate.unoCoin = unoCoin;
                 }
@@ -91,7 +93,8 @@ var job = new cron.CronJob('1 * * * * * ', function () {
                 //zebpay
                 if(zebPay.status && zebPay.status === 'error'){
                     //send email
-                    console.log("error in unocoin", unocoin);
+                    console.log("error in zebPay", zebPay);
+                    emailService.sendEmail('Error in zebPay', JSON.stringify(zebPay));
                 } else {
                     toUpdate.zebPay = zebPay;
                 }
@@ -107,6 +110,7 @@ var job = new cron.CronJob('1 * * * * * ', function () {
             if(err){
                 //send failure email
                 console.log("some err occured", err);
+                emailService.sendEmail('Some error occured', JSON.stringify(err));
             }
             console.log("Updated successfull");
         });
