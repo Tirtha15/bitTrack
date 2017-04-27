@@ -13,6 +13,21 @@ var config = {
     zebpayURL: "https://api.zebpay.com/api/v1/ticker?currencyCode=INR"
 };
 
+var alertConfig = {
+    spread: {
+        max: 4000,
+        min: 1500,
+    },
+    buyPrice: {
+        max: 90000,
+        min: 82000
+    },
+    sellPrice: {
+        max: 86000,
+        min: 80000
+    }
+};
+
 var job = new cron.CronJob('1 * * * * * ', function () {
     var currentDate = new Date();
 
@@ -42,11 +57,26 @@ var job = new cron.CronJob('1 * * * * * ', function () {
                           msg: 'Price cant be parsed from html at: ' + targetUrl
                       });
 
-                    return cb(null, {
+                    var toReturn = {
                         buyPrice: buyPrice,
                         sellPrice: sellPrice,
                         spread: spread
-                    });
+                    };
+
+                    //alerts
+                    if(spread < alertConfig.spread.min || spread > alertConfig.spread.max){
+                        emailService.sendEmail('Unocoin Spread Alert:', toReturn);
+                    }
+
+                    if(buyPrice < alertConfig.buyPrice.min || buyPrice > alertConfig.buyPrice.max){
+                        emailService.sendEmail('Unocoin BuyPrice Alert:', toReturn);
+                    }
+
+                    if(sellPrice < alertConfig.sellPrice.min || sellPrice > alertConfig.sellPrice.max){
+                        emailService.sendEmail('Unocoin SellPrice Alert:', toReturn);
+                    }
+
+                    return cb(null, toReturn);
                 });
             },
             zebpay: function(cb){
@@ -65,12 +95,28 @@ var job = new cron.CronJob('1 * * * * * ', function () {
                             msg: 'No data in api response: ' + targetUrl
                         });
                     var responseData = JSON.parse(data);
+
+
                     var toReturn = {
                         buyPrice: responseData.buy,
                         sellPrice: responseData.sell,
                         volume: responseData.volume,
                         spread: responseData.buy - responseData.sell
                     };
+
+                    //alerts
+                    if(toReturn.spread < alertConfig.spread.min || toReturn.spread > alertConfig.spread.max){
+                        emailService.sendEmail('zebpay Spread Alert:', toReturn);
+                    }
+
+                    if(toReturn.buyPrice < alertConfig.buyPrice.min || toReturn.buyPrice > alertConfig.buyPrice.max){
+                        emailService.sendEmail('zebpay BuyPrice Alert:', toReturn);
+                    }
+
+                    if(toReturn.sellPrice < alertConfig.sellPrice.min || toReturn.sellPrice > alertConfig.sellPrice.max){
+                        emailService.sendEmail('zebpay SellPrice Alert:', toReturn);
+                    }
+
                     return cb(null, toReturn);
                 });
             },
