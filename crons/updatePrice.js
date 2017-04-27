@@ -4,7 +4,8 @@ var _ = require('underscore');
 var request = require('request');
 var cheerio = require('cheerio');
 var nodeEnv = process.env.NODE_ENV;
-var db;
+var db = require('monk')('ec2-54-89-200-149.compute-1.amazonaws.com:27017/bitTrack');
+var priceHistoryCol = db.get("priceHistory");
 
 var config = {
     unocoinURL: "https://www.unocoin.com/",
@@ -82,6 +83,7 @@ var job = new cron.CronJob('1 * * * * * ', function () {
                 //unocoin
                 if(unoCoin.status && unoCoin.status === 'error'){
                     //send email
+                    console.log("error in unocoin", unocoin);
                 } else {
                     toUpdate.unoCoin = unoCoin;
                 }
@@ -89,13 +91,16 @@ var job = new cron.CronJob('1 * * * * * ', function () {
                 //zebpay
                 if(zebPay.status && zebPay.status === 'error'){
                     //send email
+                    console.log("error in unocoin", unocoin);
                 } else {
                     toUpdate.zebPay = zebPay;
                 }
 
-                console.log("toUpdate", toUpdate);
-
-                return cb();
+                priceHistoryCol.insert(toUpdate, function(err, insertedDoc){
+                    if(err)
+                      return cb(err);
+                    return cb();
+                });
 
             }]
         }, function(err, results){
