@@ -13,20 +13,30 @@ var config = {
     zebpayURL: "https://api.zebpay.com/api/v1/ticker?currencyCode=INR"
 };
 
-var alertConfig = {
-    spread: {
-        max: 4000,
-        min: 1500,
-    },
-    buyPrice: {
-        max: 90000,
-        min: 82000
-    },
-    sellPrice: {
-        max: 86000,
-        min: 80000
-    }
-};
+function sendAlerts(config, sourceName, doc){
+    var sourceLimits = config[sourceName];
+
+    var allKeys = Object.keys(sourceLimits);
+
+    _.each(allKeys, function(key){
+        if(doc[key]){
+            if(doc[key] < sourceLimits[key].min){
+                var subject = "MIN ALERT: " +key +" below Min Limit in " + sourceName + " of "+sourceLimits[key].min;
+                emailService.sendEmail(subject, JSON.stringify(doc));
+            }
+
+            if(doc[key] > sourceLimits[key].max){
+                var subject = "MAX ALERT: " +key +" exceeding Max Limit in " + sourceName + " of "+sourceLimits[key].max;
+                emailService.sendEmail(subject, JSON.stringify(doc));
+            }
+
+        } else {
+            //send error email
+            var subject = key +" alert Failed for " + sourceName + " ";
+            emailService.sendEmail(subject, JSON.stringify(doc));
+        }
+    });
+}
 
 var job = new cron.CronJob('1 * * * * * ', function () {
     var currentDate = new Date();
@@ -63,19 +73,6 @@ var job = new cron.CronJob('1 * * * * * ', function () {
                         spread: spread
                     };
 
-                    //alerts
-                    if(spread < alertConfig.spread.min || spread > alertConfig.spread.max){
-                        emailService.sendEmail('Unocoin Spread Alert:', JSON.stringify(toReturn));
-                    }
-
-                    if(buyPrice < alertConfig.buyPrice.min || buyPrice > alertConfig.buyPrice.max){
-                        emailService.sendEmail('Unocoin BuyPrice Alert:', JSON.stringify(toReturn));
-                    }
-
-                    if(sellPrice < alertConfig.sellPrice.min || sellPrice > alertConfig.sellPrice.max){
-                        emailService.sendEmail('Unocoin SellPrice Alert:', JSON.stringify(toReturn));
-                    }
-
                     return cb(null, toReturn);
                 });
             },
@@ -104,20 +101,19 @@ var job = new cron.CronJob('1 * * * * * ', function () {
                         spread: responseData.buy - responseData.sell
                     };
 
-                    //alerts
-                    if(toReturn.spread < alertConfig.spread.min || toReturn.spread > alertConfig.spread.max){
-                        emailService.sendEmail('zebpay Spread Alert:', JSON.stringify(toReturn));
-                    }
-
-                    if(toReturn.buyPrice < alertConfig.buyPrice.min || toReturn.buyPrice > alertConfig.buyPrice.max){
-                        emailService.sendEmail('zebpay BuyPrice Alert:', JSON.stringify(toReturn));
-                    }
-
-                    if(toReturn.sellPrice < alertConfig.sellPrice.min || toReturn.sellPrice > alertConfig.sellPrice.max){
-                        emailService.sendEmail('zebpay SellPrice Alert:', JSON.stringify(toReturn));
-                    }
-
                     return cb(null, toReturn);
+                });
+            },
+            alertLimits: function(cb){
+                var alertLimits = db.get('alertLimits');
+
+                alertLimits.findOne({}, {}, function(err, limits){
+                    if(err){
+                        emailService.sendEmail('Error in fetching alert Limits', JSON.stringify(err));
+                        return cb();
+                    }
+
+                    return cb(null, limits);
                 });
             },
             updatePrice: ['unocoin', 'zebpay', function(results, cb){
@@ -148,17 +144,31 @@ var job = new cron.CronJob('1 * * * * * ', function () {
                 priceHistoryCol.insert(toUpdate, function(err, insertedDoc){
                     if(err)
                       return cb(err);
-                    return cb();
+                    return cb(null, toUpdate);
                 });
+
+                return cb(null, toUpdate);
+
+            }],
+            sendAlerts: ['alertLimits', 'updatePrice', function(results, cb){
+                var allDoc = results.updatePrice;
+                var alertConfig = results.alertLimits;
+
+                _.each(Object.keys(allDoc), function(key){
+                    if(alertConfig && alertConfig[key]){
+                        sendAlerts(alertConfig, key, allDoc[key]);
+                    }
+                });
+
+                return cb();
 
             }]
         }, function(err, results){
             if(err){
                 //send failure email
-                console.log("some err occured", err);
                 emailService.sendEmail('Some error occured', JSON.stringify(err));
             }
-            console.log("Updated successfull");
+            console.log("Updated successfully");
         });
     }
 
