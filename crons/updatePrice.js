@@ -65,15 +65,15 @@ var job = new cron.CronJob('1 * * * * * ', function () {
 
                     //alerts
                     if(spread < alertConfig.spread.min || spread > alertConfig.spread.max){
-                        emailService.sendEmail('Unocoin Spread Alert:', toReturn);
+                        emailService.sendEmail('Unocoin Spread Alert:', JSON.stringify(toReturn));
                     }
 
                     if(buyPrice < alertConfig.buyPrice.min || buyPrice > alertConfig.buyPrice.max){
-                        emailService.sendEmail('Unocoin BuyPrice Alert:', toReturn);
+                        emailService.sendEmail('Unocoin BuyPrice Alert:', JSON.stringify(toReturn));
                     }
 
                     if(sellPrice < alertConfig.sellPrice.min || sellPrice > alertConfig.sellPrice.max){
-                        emailService.sendEmail('Unocoin SellPrice Alert:', toReturn);
+                        emailService.sendEmail('Unocoin SellPrice Alert:', JSON.stringify(toReturn));
                     }
 
                     return cb(null, toReturn);
@@ -106,15 +106,15 @@ var job = new cron.CronJob('1 * * * * * ', function () {
 
                     //alerts
                     if(toReturn.spread < alertConfig.spread.min || toReturn.spread > alertConfig.spread.max){
-                        emailService.sendEmail('zebpay Spread Alert:', toReturn);
+                        emailService.sendEmail('zebpay Spread Alert:', JSON.stringify(toReturn));
                     }
 
                     if(toReturn.buyPrice < alertConfig.buyPrice.min || toReturn.buyPrice > alertConfig.buyPrice.max){
-                        emailService.sendEmail('zebpay BuyPrice Alert:', toReturn);
+                        emailService.sendEmail('zebpay BuyPrice Alert:', JSON.stringify(toReturn));
                     }
 
                     if(toReturn.sellPrice < alertConfig.sellPrice.min || toReturn.sellPrice > alertConfig.sellPrice.max){
-                        emailService.sendEmail('zebpay SellPrice Alert:', toReturn);
+                        emailService.sendEmail('zebpay SellPrice Alert:', JSON.stringify(toReturn));
                     }
 
                     return cb(null, toReturn);
